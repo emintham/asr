@@ -21,20 +21,9 @@ def get_nth_frame(level=0):
     return curr_frame
 
 
-def get_varname_in_caller_locals(obj, level=3):
-    """
-    Returns the variable name of an object within the local scope of the n-th
-    level caller.
-    """
-    frame_locals = get_nth_frame(level).f_locals
-
-    for k, v in iteritems(frame_locals):
-        if v is obj:
-            return k
-    else:
-        error_message = ('{} was not found in the {}-th level caller\'s '
-                         'local scope!').format(obj, level)
-        raise Exception(error_message)
+class VarNotFound(Exception):
+    """Raised when an object is not found in a caller's local scope."""
+    pass
 
 
 class watch(object):
@@ -44,6 +33,9 @@ class watch(object):
     Args:
         obj: the object the attribute is attached to
         attr: the attribute being watched
+        name: name of variable within the local scope. Useful when the
+              variable is not directly referenced locally.
+              e.g. `self.foo.bar`. Optional.
         verbose: verbose output-- prints changes as it is observed. Optional.
                  Default is True.
 
@@ -55,15 +47,16 @@ class watch(object):
         sentry.close()
     """
 
-    def __init__(self, obj, attr, verbose=True):
-        assert hasattr(obj, attr)
+    def __init__(self, obj, attr, name='', verbose=True):
+        if not hasattr(obj, attr):
+            raise AttributeError('`{}` not found on {}!'.format(attr, obj))
 
         value = getattr(obj, attr)
         klass = obj.__class__
         self.obj = obj
         # filename, line number, old value, new value
         self.values = [('', 0, None, value)]
-        self.varname = get_varname_in_caller_locals(obj)
+        self.varname = name or self.get_varname_in_caller_locals(obj)
         self.attr = attr
         self.verbose = verbose
         setattr(self.obj, self.attr, self)
@@ -113,6 +106,22 @@ class watch(object):
     @property
     def history(self):
         return [self.change_as_str(*entry) for entry in self.values]
+
+    def get_varname_in_caller_locals(self, obj, level=3):
+        """
+        Returns the variable name of an object within the local scope of the
+        n-th level caller.
+        """
+        frame_locals = get_nth_frame(level).f_locals
+
+        for k, v in iteritems(frame_locals):
+            if v is obj:
+                return k
+        else:
+            error_message = ('{} was not found in the {}-th level caller\'s '
+                             'local scope! Provide a `name` argument instead.'
+                             ).format(obj, level)
+            raise VarNotFound(error_message)
 
     def change_as_str(self, filename, line_num, old_value, new_value):
         return '({}): {} line {} => {} -> {}'.format(
