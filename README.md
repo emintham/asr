@@ -17,7 +17,7 @@ from asr.debug import watch
 
 f = Foo()
 f.foo = 1
-sentry = watch(f, 'foo') # prints 'Started attribute `f.foo`
+sentry = watch(f, 'foo') # prints 'Started watching attribute `f.foo`
 
 f.foo = 2   # prints (f.foo): __main__ line 5 => 1 -> 2
 f.foo = 3   # prints (f.foo): __main__ line 6 => 2 -> 3
