@@ -79,6 +79,7 @@ class watch(object):
         def set_attribute(instance, attribute, new_val):
             if attribute != attr or instance is not obj:
                 self.old_setattr(instance, attribute, new_val)
+                return
 
             frame = get_nth_frame(2)
             filename = frame.f_code.co_filename

@@ -31,6 +31,19 @@ class WatchTests(TestCase):
                           for _, lineno, old, new in sentry.values],
                          expected)
 
+    def test_other_attrs_are_unaffected(self):
+        f = Foo()
+        f.foo = 1
+        f.bar = 1
+        sentry = watch(f, 'foo', verbose=False)
+        self.assertEqual(f.bar, 1)
+
+        f.foo = 2
+        self.assertEqual(f.foo, 2)
+        self.assertEqual(f.bar, 1)
+
+        sentry.close()
+
     def test_label(self):
         f = Foo()
         f.foo = 1
