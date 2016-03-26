@@ -1,3 +1,6 @@
+from six import iteritems
+
+
 __all__ = ('watch', )
 
 
@@ -25,7 +28,7 @@ def get_varname_in_caller_locals(obj, level=3):
     """
     frame_locals = get_nth_frame(level).f_locals
 
-    for k, v in frame_locals.iteritems():
+    for k, v in iteritems(frame_locals):
         if v is obj:
             return k
     else:
