@@ -36,6 +36,8 @@ class watch(object):
         name: name of variable within the local scope. Useful when the
               variable is not directly referenced locally.
               e.g. `self.foo.bar`. Optional.
+        max_display_len: maximum length to display each value. Optional.
+                         Default is 100.
         verbose: verbose output-- prints changes as it is observed. Optional.
                  Default is True.
 
@@ -47,7 +49,7 @@ class watch(object):
         sentry.close()
     """
 
-    def __init__(self, obj, attr, name='', verbose=True):
+    def __init__(self, obj, attr, name='', max_display_len=100, verbose=True):
         if not hasattr(obj, attr):
             raise AttributeError('`{}` not found on {}!'.format(attr, obj))
 
@@ -59,6 +61,7 @@ class watch(object):
         self.varname = name or self.get_varname_in_caller_locals(obj)
         self.attr = attr
         self.verbose = verbose
+        self.max_display_len = max_display_len
         setattr(self.obj, self.attr, self)
 
         self.old_getattribute = klass.__getattribute__
@@ -124,6 +127,14 @@ class watch(object):
             raise VarNotFound(error_message)
 
     def change_as_str(self, filename, line_num, old_value, new_value):
+        old_value = str(old_value)
+        if len(old_value) > self.max_display_len:
+            old_value = old_value[:self.max_display_len-3] + '...'
+
+        new_value = str(new_value)
+        if len(new_value) > self.max_display_len:
+            new_value = new_value[:self.max_display_len-3] + '...'
+
         return '({}): {} line {} => {} -> {}'.format(
             self.label, filename, line_num, old_value, new_value)
 
