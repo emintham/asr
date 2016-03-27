@@ -44,9 +44,10 @@ class WatchTests(TestCase):
         # line_num of change, old value, new value
         expected = [(0, None, 1),
                     (41, 1, 2)]
-        self.assertEqual([(lineno, old, new)
-                          for _, lineno, old, new in self.sentry.values],
-                         expected)
+        self.assertEqual(
+            [(change.line_num, change.old_value, change.new_value)
+             for change in self.sentry.changes],
+            expected)
 
     def test_other_attrs_are_unaffected(self):
         f = Foo()

@@ -26,6 +26,40 @@ class VarNotFound(Exception):
     pass
 
 
+class Change(object):
+    """
+    Records a change from an old value to a new value.
+
+    Args:
+        source: sourcefile where change occurred.
+        line_num: line number where change occurred.
+        old_value: old value.
+        new_value: new value.
+        max_display_len: maximum length to display each value. Optional.
+                         Default is 100.
+    """
+
+    def __init__(self, source, line_num,
+                 old_value, new_value, max_display_len=100):
+        self.source = source
+        self.line_num = line_num
+        self.old_value = old_value
+        self.new_value = new_value
+        self.max_display_len = max_display_len
+
+    def __str__(self):
+        old_value = str(self.old_value)
+        if len(old_value) > self.max_display_len:
+            old_value = old_value[:self.max_display_len-3] + '...'
+
+        new_value = str(self.new_value)
+        if len(new_value) > self.max_display_len:
+            new_value = new_value[:self.max_display_len-3] + '...'
+
+        return '{} line {} => {} -> {}'.format(
+            self.source, self.line_num, old_value, new_value)
+
+
 class watch(object):
     """
     Watches an attribute for changes in value.
@@ -36,8 +70,6 @@ class watch(object):
         name: name of variable within the local scope. Useful when the
               variable is not directly referenced locally.
               e.g. `self.foo.bar`. Optional.
-        max_display_len: maximum length to display each value. Optional.
-                         Default is 100.
         verbose: verbose output-- prints changes as it is observed. Optional.
                  Default is True.
 
@@ -55,12 +87,10 @@ class watch(object):
 
         value = getattr(obj, attr)
         self.obj = obj
-        # filename, line number, old value, new value
-        self.values = [('', 0, None, value)]
+        self.changes = [Change('', 0, None, value)]
         self.varname = name or self.get_varname_in_caller_locals(obj)
         self.attr = attr
         self.verbose = verbose
-        self.max_display_len = max_display_len
         self.open()
 
     @property
@@ -69,11 +99,14 @@ class watch(object):
 
     @property
     def value(self):
-        return self.values[-1][-1]
+        return self.changes[-1].new_value
 
     @property
     def history(self):
-        return [self.change_as_str(*entry) for entry in self.values]
+        return [self.change_as_str(change) for change in self.changes]
+
+    def add_change(self, change):
+        self.changes.append(change)
 
     def open(self):
         klass = self.obj.__class__
@@ -105,12 +138,12 @@ class watch(object):
             frame = get_nth_frame(2)
             filename = frame.f_code.co_filename
             lineno = frame.f_lineno
+            change = Change(filename, lineno, self.value, new_val)
 
             if self.verbose:
-                print(self.change_as_str(
-                    filename, lineno, self.value, new_val))
+                print('({}): {}'.format(self.label, str(change)))
 
-            self.values.append((filename, lineno, self.value, new_val))
+            self.add_change(change)
 
         klass.__setattr__ = set_attribute
 
@@ -137,18 +170,6 @@ class watch(object):
                              'local scope! Provide a `name` argument instead.'
                              ).format(obj, level)
             raise VarNotFound(error_message)
-
-    def change_as_str(self, filename, line_num, old_value, new_value):
-        old_value = str(old_value)
-        if len(old_value) > self.max_display_len:
-            old_value = old_value[:self.max_display_len-3] + '...'
-
-        new_value = str(new_value)
-        if len(new_value) > self.max_display_len:
-            new_value = new_value[:self.max_display_len-3] + '...'
-
-        return '({}): {} line {} => {} -> {}'.format(
-            self.label, filename, line_num, old_value, new_value)
 
     def close(self):
         """Unpatches the object and its class"""
