@@ -32,4 +32,4 @@ sentry.close()        # prints 'Stopped watching attribute `f.foo`
 Note: It is important to call `close()` to prevent undesired behaviour.
 
 #### Known Issues
-- Does not currently work with descriptors/`@property`.
+- Does not currently work with anything more complex than a change via assignment.
