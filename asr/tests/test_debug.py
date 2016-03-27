@@ -7,6 +7,10 @@ class Foo(object):
     foo = 1
     bar = 1
 
+    @property
+    def baz(self):
+        return 'baz'
+
 
 class WatchTests(TestCase):
     """
@@ -39,7 +43,7 @@ class WatchTests(TestCase):
 
         # line_num of change, old value, new value
         expected = [(0, None, 1),
-                    (37, 1, 2)]
+                    (41, 1, 2)]
         self.assertEqual([(lineno, old, new)
                           for _, lineno, old, new in self.sentry.values],
                          expected)
@@ -75,3 +79,9 @@ class WatchTests(TestCase):
         self.assertIs(Foo.__setattr__, self.__class__.old_setattr)
         self.assertIs(self.__class__.old_getattribute(f, 'foo'), f.foo)
         self.assertEqual(f.foo, 1)
+
+    def test_descriptor_raises_exception(self):
+        f = Foo()
+
+        with self.assertRaises(TypeError):
+            self.sentry = watch(f, 'baz', verbose=False)

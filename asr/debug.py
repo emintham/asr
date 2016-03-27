@@ -54,7 +54,6 @@ class watch(object):
             raise AttributeError('`{}` not found on {}!'.format(attr, obj))
 
         value = getattr(obj, attr)
-        klass = obj.__class__
         self.obj = obj
         # filename, line number, old value, new value
         self.values = [('', 0, None, value)]
@@ -62,12 +61,34 @@ class watch(object):
         self.attr = attr
         self.verbose = verbose
         self.max_display_len = max_display_len
+        self.open()
+
+    @property
+    def label(self):
+        return self.varname + '.' + self.attr
+
+    @property
+    def value(self):
+        return self.values[-1][-1]
+
+    @property
+    def history(self):
+        return [self.change_as_str(*entry) for entry in self.values]
+
+    def open(self):
+        klass = self.obj.__class__
+
+        # Check if self.attr is a descriptor
+        class_attr = getattr(klass, self.attr, None)
+        if (class_attr and hasattr(class_attr, '__get__')):
+            raise TypeError('Descriptors are not supported!')
+
         setattr(self.obj, self.attr, self)
 
         self.old_getattribute = klass.__getattribute__
 
         def get_attribute(instance, attribute):
-            if attribute != attr or instance is not obj:
+            if attribute != self.attr or instance is not self.obj:
                 return self.old_getattribute(instance, attribute)
 
             return self.value
@@ -77,7 +98,7 @@ class watch(object):
         self.old_setattr = klass.__setattr__
 
         def set_attribute(instance, attribute, new_val):
-            if attribute != attr or instance is not obj:
+            if attribute != self.attr or instance is not self.obj:
                 self.old_setattr(instance, attribute, new_val)
                 return
 
@@ -100,18 +121,6 @@ class watch(object):
 
     def __unicode__(self):
         return u'{} being watched'.format(self.label)
-
-    @property
-    def label(self):
-        return self.varname + '.' + self.attr
-
-    @property
-    def value(self):
-        return self.values[-1][-1]
-
-    @property
-    def history(self):
-        return [self.change_as_str(*entry) for entry in self.values]
 
     def get_varname_in_caller_locals(self, obj, level=3):
         """
