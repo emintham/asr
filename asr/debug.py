@@ -93,6 +93,8 @@ class watch(object):
 
         klass.__setattr__ = set_attribute
 
+        self.enabled = True
+
         if self.verbose:
             print('Started watching attribute `{}`'.format(self.label))
 
@@ -141,10 +143,14 @@ class watch(object):
 
     def close(self):
         """Unpatches the object and its class"""
+        if not self.enabled:
+            return
+
         klass = self.obj.__class__
         klass.__getattribute__ = self.old_getattribute
         klass.__setattr__ = self.old_setattr
         setattr(self.obj, self.attr, self.value)
+        self.enabled = False
 
         if self.verbose:
             print('Stopped watching attribute `{}`'.format(self.label))

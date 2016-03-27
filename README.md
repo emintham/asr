@@ -29,5 +29,7 @@ print(sentry.history) # prints (f.foo): line 0 => None -> 1
 sentry.close()        # prints 'Stopped watching attribute `f.foo`
 ```
 
+Note: It is important to call `close()` to prevent undesired behaviour.
+
 #### Known Issues
 - Does not currently work with descriptors/`@property`.
